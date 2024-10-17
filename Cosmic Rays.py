@@ -103,57 +103,63 @@ class Chamber():
         self.z_dist_list = pixel_size*np.arange(self.pixel_num_z)
         self.ionisation = 94
         
-        self.ray = Ray()
+        self.rays_list = []
         
     def init_ion(self):
+        ray = Ray()
+        self.rays_list.append(ray)
+        
+        simulated_pixels = []
+        
         for i in range(self.pixel_num_z):
-            x_coor = self.ray_func_x(self.z_dist_list[i])
+            x_coor = self.ray_func_x(self.z_dist_list[i], ray)
             if 0 <= x_coor <= self.length:
                 x_ind = find_near(self.x_dist_list, x_coor) 
-                self.grid[i][x_ind] = 1
+                if [i, x_ind] not in simulated_pixels:
+                    self.grid[i][x_ind] += 0.1
+                    simulated_pixels.append([i, x_ind])
         
         for i in range(self.pixel_num_x):
-            z_coor = self.ray_func_z(self.x_dist_list[i])
+            z_coor = self.ray_func_z(self.x_dist_list[i], ray)
             if 0 <= z_coor <= self.height:
                 z_ind = find_near(self.z_dist_list, z_coor)
-                self.grid[z_ind][i] = 1
+                if [z_ind, i] not in simulated_pixels:
+                    self.grid[z_ind][i] += 0.1
+                    simulated_pixels.append([z_ind, i])
             
         
-    def ray_func_z(self, x):
-        z = (x - self.ray.x)/np.tan(self.ray.zenith)
+    def ray_func_z(self, x, ray):
+        z = (x - ray.x)/np.tan(ray.zenith)
         return z
     
-    def ray_func_x(self, z):
-        x = z*np.tan(self.ray.zenith) + self.ray.x
+    def ray_func_x(self, z, ray):
+        x = z*np.tan(ray.zenith) + ray.x
         return x
     
     def plot_grid(self):
         fig,(ax1,ax2) = plt.subplots(2)
         sns.heatmap( self.grid, ax=ax1, annot=False, square=True)
         
-        x = np.linspace(0, self.length, 100)
-        y = -1*self.ray_func_z(x)
         ax2.set_xticks(self.x_dist_list)
         ax2.set_yticks(-1*self.z_dist_list)
+            
         plt.xlim([0,self.width])
         plt.ylim([-1*self.height,0])
+            
         ax2.set_aspect('equal')
-        ax2.plot(x,y)
         
+        x = np.linspace(0, self.length, 100)
+
+        for ray in range(len(self.rays_list)):
+            y = -1*self.ray_func_z(x, self.rays_list[ray])
+            ax2.plot(x,y)
         
-chamber = Chamber(0.02)
-chamber.init_ion()
-chamber.plot_grid()
+chamber1 = Chamber(0.02)
+for ion in range(1000):
+    chamber1.init_ion()
+chamber1.plot_grid()
 
-
-        
-        
-        
-        
-    
-
-
-    
-
-
-    
+chamber1 = Chamber(0.02)
+for ion in range(10):
+    chamber1.init_ion()
+chamber1.plot_grid()
